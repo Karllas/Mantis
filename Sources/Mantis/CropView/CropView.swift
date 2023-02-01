@@ -156,7 +156,7 @@ class CropView: UIView {
             cropAuxiliaryIndicatorView.gridLineNumberType = .crop
             cropAuxiliaryIndicatorView.setGrid(hidden: false, animated: true)
         case .touchCropboxHandle(let tappedEdge):
-            cropAuxiliaryIndicatorView.handleEdgeTouched(with: tappedEdge)
+            cropAuxiliaryIndicatorView.handleCornerHandleTouched(with: tappedEdge)
             rotationDial?.isHidden = true
             cropMaskViewManager.showDimmingBackground(animated: true)
         case .touchRotationBoard:
@@ -730,7 +730,7 @@ extension CropView {
 extension CropView: CropViewProtocol {
     private func setForceFixedRatio(by presetFixedRatioType: PresetFixedRatioType) {
         switch presetFixedRatioType {
-        case .alwaysUsingOnePresetFixedRatio(_):
+        case .alwaysUsingOnePresetFixedRatio:
             forceFixedRatio = true
         case .canUseMultiplePresetFixedRatio(let defaultRatio):
             forceFixedRatio = defaultRatio > 0

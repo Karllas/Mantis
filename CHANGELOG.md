@@ -2,6 +2,40 @@
 
 -----
 
+## [2.6.0](https://www.github.com/guoyingtao/Mantis/compare/v2.5.2...v2.6.0) (2023-01-31)
+
+
+### Features
+
+* add 4 edge line handles on CropAuxiliaryIndicatorView ([#258](https://www.github.com/guoyingtao/Mantis/issues/258)) ([cbbc2e1](https://www.github.com/guoyingtao/Mantis/commit/cbbc2e1b283f2edb10341c96910228d476e576e4))
+
+### [2.5.2](https://www.github.com/guoyingtao/Mantis/compare/v2.5.1...v2.5.2) (2023-01-30)
+
+
+### Bug Fixes
+
+* fix the issue of output size does not match the crop ratio ([#260](https://www.github.com/guoyingtao/Mantis/issues/260)) ([459aa77](https://www.github.com/guoyingtao/Mantis/commit/459aa77cb19e2805ea7f8e6ef3cf169588766a3e))
+
+### [2.5.1](https://www.github.com/guoyingtao/Mantis/compare/v2.5.0...v2.5.1) (2023-01-28)
+
+
+### Bug Fixes
+
+* use optional CropToolbarProtocol for CropToolbarDelegate ([#255](https://www.github.com/guoyingtao/Mantis/issues/255)) ([46a3af0](https://www.github.com/guoyingtao/Mantis/commit/46a3af06a2eecaa989970a208f5c5dfebd165432))
+
+## [2.5.0](https://www.github.com/guoyingtao/Mantis/compare/v2.4.0...v2.5.0) (2023-01-27)
+
+
+### Features
+
+* add CropRegion into CropInfo ([035b079](https://www.github.com/guoyingtao/Mantis/commit/035b07994dbd57157f0831a4c81cfa3ef6553f67))
+
+
+### Bug Fixes
+
+* fix reset issues ([b10d031](https://www.github.com/guoyingtao/Mantis/commit/b10d031242036149fb8ba2259044e937699eb114))
+* fix the issue when using canUseMultiplePresetFixedRatio with default ratio > 0 ([#252](https://www.github.com/guoyingtao/Mantis/issues/252)) ([cbd66dd](https://www.github.com/guoyingtao/Mantis/commit/cbd66dd6419406ec56f266b3aad073981750ffe4))
+
 ## [2.4.0](https://www.github.com/guoyingtao/Mantis/compare/v2.3.0...v2.4.0) (2023-01-16)
 
 
