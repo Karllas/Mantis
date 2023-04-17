@@ -34,6 +34,15 @@ public func cropViewController(image: UIImage,
     return cropViewController
 }
 
+public func cropViewController<T: CropViewController>(image: UIImage,
+                                                      config: Mantis.Config = Mantis.Config(),
+                                                      cropToolbar: CropToolbarProtocol = CropToolbar(frame: .zero)) -> T {
+    let cropViewController = T(config: config)
+    cropViewController.cropView = buildCropView(with: image, and: config.cropViewConfig)
+    cropViewController.cropToolbar = cropToolbar
+    return cropViewController
+}
+
 public func setupCropViewController(_ cropViewController: Mantis.CropViewController,
                                     with image: UIImage,
                                     and config: Mantis.Config = Mantis.Config(),
@@ -51,6 +60,22 @@ public func crop(image: UIImage, by cropInfo: CropInfo) -> UIImage? {
     return image.crop(by: cropInfo)
 }
 
+public struct Language {
+    var code: String
+    
+    public init(code: String) {
+        self.code = code
+    }
+}
+
+public func chooseLanguage(_ language: Language) {
+    Mantis.Config.language = language
+}
+
+public func resetLanguage() {
+    Mantis.Config.language = nil
+}
+
 // MARK: - internal section
 var localizationConfig = LocalizationConfig()
 
@@ -64,7 +89,7 @@ private func buildCropView(with image: UIImage, and cropViewConfig: CropViewConf
     let cropView = CropView(image: image,
                             cropViewConfig: cropViewConfig,
                             viewModel: buildCropViewModel(with: cropViewConfig),
-                            cropAuxiliaryIndicatorView: CropAuxiliaryIndicatorView(),
+                            cropAuxiliaryIndicatorView: CropAuxiliaryIndicatorView(frame: .zero, cropBoxHotAreaUnit: cropViewConfig.cropBoxHotAreaUnit, disableCropBoxDeformation: cropViewConfig.disableCropBoxDeformation),
                             imageContainer: imageContainer,
                             cropWorkbenchView: buildCropWorkbenchView(with: cropViewConfig, and: imageContainer),
                             cropMaskViewManager: buildCropMaskViewManager(with: cropViewConfig))
@@ -97,8 +122,10 @@ private func buildCropMaskViewManager(with cropViewConfig: CropViewConfig) -> Cr
 private func setupRotationDialIfNeeded(with cropViewConfig: CropViewConfig, and cropView: CropView) {
     if cropViewConfig.showRotationDial {
         let viewModel = RotationDialViewModel()
+        let dialPlate = RotationDialPlate(frame: .zero, dialConfig: cropViewConfig.dialConfig)
         cropView.rotationDial = RotationDial(frame: .zero,
                                              dialConfig: cropViewConfig.dialConfig,
-                                             viewModel: viewModel)
+                                             viewModel: viewModel,
+                                             dialPlate: dialPlate)
     }
 }

@@ -37,6 +37,9 @@ class ViewController: UIViewController, CropViewControllerDelegate {
         
         var config = Mantis.Config()
         config.cropMode = .async
+        
+        let indicatorFrame = CGRect(origin: .zero, size: config.cropViewConfig.cropActivityIndicatorSize)
+        config.cropViewConfig.cropActivityIndicator = CustomWaitingIndicator(frame: indicatorFrame)
         config.cropToolbarConfig.toolbarButtonOptions = [.clockwiseRotate, .reset, .ratio, .horizontallyFlip]
         let cropViewController = Mantis.cropViewController(image: image,
                                                            config: config)
@@ -45,6 +48,22 @@ class ViewController: UIViewController, CropViewControllerDelegate {
         let navigationController = UINavigationController(rootViewController: cropViewController)
         cropViewController.title = "Demo"
         cropViewController.view.backgroundColor = .white
+        present(navigationController, animated: true)
+    }
+
+    @IBAction func customViewController(_ sender: Any) {
+        guard let image = image else {
+            return
+        }
+
+        var config = Mantis.Config()
+        config.cropMode = .async
+        config.cropViewConfig.showRotationDial = false
+        config.showAttachedCropToolbar = false
+        let cropViewController: CustomViewController = Mantis.cropViewController(image: image, config: config)
+        cropViewController.delegate = self
+
+        let navigationController = UINavigationController(rootViewController: cropViewController)
         present(navigationController, animated: true)
     }
     

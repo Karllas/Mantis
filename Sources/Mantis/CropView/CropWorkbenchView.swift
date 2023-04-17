@@ -41,6 +41,8 @@ final class CropWorkbenchView: UIScrollView {
         initialMinimumZoomScale = minimumZoomScale
         self.imageContainer = imageContainer
         addSubview(self.imageContainer!)
+        
+        isAccessibilityElement = false
     }
     
     required init?(coder: NSCoder) {
@@ -64,6 +66,7 @@ final class CropWorkbenchView: UIScrollView {
         
     private func getBoundZoomScale() -> CGFloat {
         guard let imageContainer = imageContainer else {
+            assertionFailure("We must have an imageContainer")
             return 1.0
         }
         
@@ -135,6 +138,7 @@ extension CropWorkbenchView: CropWorkbenchViewProtocol {
         reset(by: cropBoxFrame)
         
         guard let imageContainer = imageContainer else {
+            assertionFailure("We must have an imageContainer")
             return
         }
         

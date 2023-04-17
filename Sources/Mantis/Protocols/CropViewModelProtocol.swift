@@ -24,7 +24,7 @@ protocol CropViewModelProtocol: AnyObject {
     var statusChanged: (_ status: CropViewStatus) -> Void { get set }
     var viewStatus: CropViewStatus { get set }
     var panOriginPoint: CGPoint { get set }
-    var tappedEdge: CropViewOverlayEdge { get set }
+    var tappedEdge: CropViewAuxiliaryIndicatorHandleType { get set }
     var degrees: CGFloat { get set }
     var radians: CGFloat { get }
     var rotationType: ImageRotationType { get set }
@@ -45,7 +45,7 @@ protocol CropViewModelProtocol: AnyObject {
     
     // MARK: - Handle view status changes
     func setInitialStatus()
-    func setRotatingStatus(by angle: CGAngle)
+    func setRotatingStatus(by angle: Angle)
     func setDegree90RotatingStatus()
     func setTouchImageStatus()
     func setTouchRotationBoardStatus()
@@ -58,8 +58,9 @@ extension CropViewModelProtocol {
         viewStatus = .initial
     }
     
-    func setRotatingStatus(by angle: CGAngle) {
-        viewStatus = .rotating(angle: angle)
+    func setRotatingStatus(by angle: Angle) {
+        degrees = angle.degrees
+        viewStatus = .rotating
     }
     
     func setDegree90RotatingStatus() {

@@ -9,106 +9,128 @@ import SwiftUI
 import Mantis
 
 struct ContentView: View {
-    @State private var uiImage: UIImage = UIImage(named: "sunflower")!
+    @State private var image: UIImage? = UIImage(named: "sunflower")!
     @State private var showingCropper = false
+    @State private var showingCropShapeList = false
     @State private var cropShapeType: Mantis.CropShapeType = .rect
     @State private var presetFixedRatioType: Mantis.PresetFixedRatioType = .canUseMultiplePresetFixedRatio()
+    @State private var cropperType: ImageCropperType = .normal
+    @State private var contentHeight: CGFloat = 0
+    
+    @State private var showImagePicker = false
+    @State private var showCamera = false
+    @State private var showSourceTypeSelection = false
+    @State private var sourceType: UIImagePickerController.SourceType?
+    
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     var body: some View {
-        VStack {
-            Spacer()
-            Image(uiImage: uiImage)
-                .resizable().aspectRatio(contentMode: .fit)
-                .frame(width: 300, height: 300, alignment: /*@START_MENU_TOKEN@*/.center/*@END_MENU_TOKEN@*/)
-            Spacer()
-            Button("Normal") {
-                reset()
-                showingCropper = true
-            }.font(.title)
-            Button("Circle Crop") {
-                reset()
-                cropShapeType = .circle()
-                showingCropper = true
-            }.font(.title)
-            Button("Keep 1:1 ratio") {
-                reset()
-                presetFixedRatioType = .alwaysUsingOnePresetFixedRatio(ratio: 1)
-                showingCropper = true
-            }.font(.title)
-            Spacer()
-        }.fullScreenCover(isPresented: $showingCropper, content: {
-            ImageCropper(image: $uiImage,
+        AdaptiveStack {
+            createImageHolder()
+            createFeatureDemoList()
+        }
+        .fullScreenCover(isPresented: $showingCropper, content: {
+            ImageCropper(image: $image,
                          cropShapeType: $cropShapeType,
-                         presetFixedRatioType: $presetFixedRatioType)
-                .ignoresSafeArea()
+                         presetFixedRatioType: $presetFixedRatioType,
+                         type: $cropperType)
+            .onDisappear(perform: reset)
+            .ignoresSafeArea()
         })
+        .sheet(isPresented: $showingCropShapeList) {
+            CropShapeListView(cropShapeType: $cropShapeType, selectedType: $showingCropper)
+        }
+        .sheet(isPresented: $showSourceTypeSelection) {
+            SourceTypeSelectionView(showSourceTypeSelection: $showSourceTypeSelection, showCamera: $showCamera, showImagePicker: $showImagePicker)
+        }
+        .sheet(isPresented: $showCamera) {
+            CameraView(image: $image)
+        }
+        .sheet(isPresented: $showImagePicker) {
+            ImagePickerView(image: $image)
+        }
     }
     
     func reset() {
-        uiImage = UIImage(named: "sunflower")!
         cropShapeType = .rect
         presetFixedRatioType = .canUseMultiplePresetFixedRatio()
+        cropperType = .normal
     }
     
+    func createImageHolder() -> some View {
+        VStack {
+            Spacer()
+            Image(uiImage: image!)
+                .resizable().aspectRatio(contentMode: .fit)
+                .frame(width: 300, height: 300, alignment: /*@START_MENU_TOKEN@*/.center/*@END_MENU_TOKEN@*/)
+            HStack {
+                Button("Choose Image") {
+                    showSourceTypeSelection = true
+                }
+                .font(.title)
+                Button("Reset Image") {
+                    image = UIImage(named: "sunflower")!
+                }
+                .font(.title)
+            }
+            Spacer()
+        }
+    }
+    
+    func createFeatureDemoList() -> some View {
+        ScrollView {
+            if horizontalSizeClass == .regular {
+                createFeatureDemoListContent()
+                    .frame(maxWidth: .infinity, minHeight: 0, maxHeight: contentHeight < UIScreen.main.bounds.height ? .infinity : nil)
+                    .padding(.vertical, (UIScreen.main.bounds.height - contentHeight) / 2)
+            } else {
+                createFeatureDemoListContent()
+            }
+        }
+    }
+    
+    func createFeatureDemoListContent() -> some View {
+        VStack(alignment: .leading) {
+            Spacer()
+            Button("Normal Crop") {
+                showingCropper = true
+            }.font(.title)
+            Button("Select crop shape") {
+                showingCropShapeList = true
+            }.font(.title)
+            Button("Keep 1:1 ratio") {
+                presetFixedRatioType = .alwaysUsingOnePresetFixedRatio(ratio: 1)
+                showingCropper = true
+            }.font(.title)
+            Button("Hide Rotation Dial") {
+                cropperType = .noRotaionDial
+                showingCropper = true
+            }.font(.title)
+            Button("Hide Attached Toolbar") {
+                cropperType = .noAttachedToolbar
+                showingCropper = true
+            }.font(.title)
+            Spacer()
+        }
+        .background(
+            GeometryReader { proxy in
+                Color.clear
+                    .onAppear {
+                        self.contentHeight = proxy.size.height
+                    }
+            }
+        )
+    }
 }
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ForEach(ColorScheme.allCases, id: \.self) {
             ContentView().preferredColorScheme($0)
+            if #available(iOS 15.0, *) {
+                ContentView()
+                    .previewInterfaceOrientation(.landscapeLeft)
+            }
         }
-    }
-}
-
-struct ImageCropper: UIViewControllerRepresentable {
-    @Binding var image: UIImage
-    @Binding var cropShapeType: Mantis.CropShapeType
-    @Binding var presetFixedRatioType: Mantis.PresetFixedRatioType
-    
-    @Environment(\.presentationMode) var presentationMode
-    
-    class Coordinator: CropViewControllerDelegate {
-        var parent: ImageCropper
-        
-        init(_ parent: ImageCropper) {
-            self.parent = parent
-        }
-        
-        func cropViewControllerDidCrop(_ cropViewController: CropViewController, cropped: UIImage, transformation: Transformation, cropInfo: CropInfo) {
-            parent.image = cropped
-            print("transformation is \(transformation)")
-            parent.presentationMode.wrappedValue.dismiss()
-        }
-        
-        func cropViewControllerDidCancel(_ cropViewController: CropViewController, original: UIImage) {
-            parent.presentationMode.wrappedValue.dismiss()
-        }
-        
-        func cropViewControllerDidFailToCrop(_ cropViewController: CropViewController, original: UIImage) {
-        }
-        
-        func cropViewControllerDidBeginResize(_ cropViewController: CropViewController) {
-        }
-        
-        func cropViewControllerDidEndResize(_ cropViewController: CropViewController, original: UIImage, cropInfo: CropInfo) {
-        }
-    }
-    
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
-    
-    func makeUIViewController(context: Context) -> CropViewController {
-        var config = Mantis.Config()
-        config.cropViewConfig.cropShapeType = cropShapeType
-        config.presetFixedRatioType = presetFixedRatioType
-        let cropViewController = Mantis.cropViewController(image: image,
-                                                           config: config)
-        cropViewController.delegate = context.coordinator
-        return cropViewController
-    }
-    
-    func updateUIViewController(_ uiViewController: CropViewController, context: Context) {
-        
     }
 }

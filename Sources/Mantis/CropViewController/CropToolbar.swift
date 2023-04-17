@@ -14,16 +14,17 @@ public enum CropToolbarMode {
 }
 
 public class CropToolbar: UIView, CropToolbarProtocol {
-    private(set) public var config: CropToolbarConfigProtocol?
-    
+    public var config = CropToolbarConfig()
     public var iconProvider: CropToolbarIconProvider?
     
-    public weak var cropToolbarDelegate: CropToolbarDelegate?
+    public weak var delegate: CropToolbarDelegate?
         
     private lazy var counterClockwiseRotationButton: UIButton = {
         let button = createOptionButton(withTitle: nil, andAction: #selector(counterClockwiseRotate))
         let icon = iconProvider?.getCounterClockwiseRotationIcon() ?? ToolBarButtonImageBuilder.rotateCCWImage()
         button.setImage(icon, for: .normal)
+        button.accessibilityIdentifier = "CounterClockwiseRotationButton"
+        button.accessibilityLabel = LocalizedHelper.getString("Mantis.CounterClockwise rotation", value: "CounterClockwise rotation")
         return button
     }()
 
@@ -31,6 +32,8 @@ public class CropToolbar: UIView, CropToolbarProtocol {
         let button = createOptionButton(withTitle: nil, andAction: #selector(clockwiseRotate))
         let icon = iconProvider?.getClockwiseRotationIcon() ?? ToolBarButtonImageBuilder.rotateCWImage()
         button.setImage(icon, for: .normal)
+        button.accessibilityIdentifier = "ClockwiseRotationButton"
+        button.accessibilityLabel = LocalizedHelper.getString("Mantis.Clockwise rotation", value: "Clockwise rotation")
         return button
     }()
 
@@ -38,6 +41,8 @@ public class CropToolbar: UIView, CropToolbarProtocol {
         let button = createOptionButton(withTitle: nil, andAction: #selector(alterCropper90Degree))
         let icon = iconProvider?.getAlterCropper90DegreeIcon() ?? ToolBarButtonImageBuilder.alterCropper90DegreeImage()
         button.setImage(icon, for: .normal)
+        button.accessibilityIdentifier = "AlterCropper90DegreeButton"
+        button.accessibilityLabel = LocalizedHelper.getString("Mantis.Alter cropper by 90 degrees", value: "Alter cropper by 90 degrees")
         return button
     }()
     
@@ -45,6 +50,8 @@ public class CropToolbar: UIView, CropToolbarProtocol {
         let button = createOptionButton(withTitle: nil, andAction: #selector(horizontallyFlip))
         let icon = iconProvider?.getHorizontallyFlipIcon() ?? ToolBarButtonImageBuilder.horizontallyFlipImage()
         button.setImage(icon, for: .normal)
+        button.accessibilityIdentifier = "HorizontallyFlipButton"
+        button.accessibilityLabel = LocalizedHelper.getString("Mantis.Horizontally flip", value: "Horizontally flip")
         return button
     }()
     
@@ -52,6 +59,8 @@ public class CropToolbar: UIView, CropToolbarProtocol {
         let button = createOptionButton(withTitle: nil, andAction: #selector(verticallyFlip(_:)))
         let icon = iconProvider?.getVerticallyFlipIcon() ?? ToolBarButtonImageBuilder.verticallyFlipImage()
         button.setImage(icon, for: .normal)
+        button.accessibilityIdentifier = "VerticallyFlipButton"
+        button.accessibilityLabel = LocalizedHelper.getString("Mantis.Vertically flip", value: "Vertically flip")
         return button
     }()
 
@@ -64,8 +73,13 @@ public class CropToolbar: UIView, CropToolbarProtocol {
             return button
         }
 
+        // Here we use Mantis.Cancel as a key in case of user want to use their own
+        // localized string, use this key can avoid possible key conflict
         let cancelText = LocalizedHelper.getString("Mantis.Cancel", value: "Cancel")
-        return createOptionButton(withTitle: cancelText, andAction: #selector(cancel))
+        let button = createOptionButton(withTitle: cancelText, andAction: #selector(cancel))
+        button.accessibilityIdentifier = "CancelButton"
+        button.accessibilityLabel = cancelText
+        return button
     }()
 
     private lazy var cropButton: UIButton = {
@@ -76,19 +90,18 @@ public class CropToolbar: UIView, CropToolbarProtocol {
         }
         
         let doneText = LocalizedHelper.getString("Mantis.Done", value: "Done")
-        return createOptionButton(withTitle: doneText, andAction: #selector(crop))
+        let button = createOptionButton(withTitle: doneText, andAction: #selector(crop))
+        button.accessibilityIdentifier = "DoneButton"
+        button.accessibilityLabel = doneText
+        return button
     }()
 
     private var resetButton: UIButton?
     private var optionButtonStackView: UIStackView?
     
-    public func createToolbarUI(config: CropToolbarConfigProtocol?) {
+    public func createToolbarUI(config: CropToolbarConfig) {
         self.config = config
-        
-        guard let config = config as? CropToolbarConfig else {
-            return
-        }
-        
+                
         backgroundColor = config.backgroundColor
                 
         if #available(macCatalyst 14.0, iOS 14.0, *) {
@@ -150,11 +163,8 @@ public class CropToolbar: UIView, CropToolbarProtocol {
     
     public override var intrinsicContentSize: CGSize {
         let superSize = super.intrinsicContentSize
-        guard let config = config else {
-            return superSize
-        }
 
-        if Orientation.isPortrait {
+        if Orientation.treatAsPortrait {
             return CGSize(width: superSize.width, height: config.heightForVerticalOrientation)
         } else {
             return CGSize(width: config.widthForHorizontalOrientation, height: superSize.height)
@@ -166,7 +176,7 @@ public class CropToolbar: UIView, CropToolbarProtocol {
     }
 
     public func adjustLayoutWhenOrientationChange() {
-        if Orientation.isPortrait {
+        if Orientation.treatAsPortrait {
             optionButtonStackView?.axis = .horizontal
             optionButtonStackView?.layoutMargins = UIEdgeInsets(top: 0, left: 20, bottom: 0, right: 20)
         } else {
@@ -180,10 +190,6 @@ public class CropToolbar: UIView, CropToolbarProtocol {
     }
 
     public func handleFixedRatioUnSetted() {
-        guard let config = config else {
-            return
-        }
-
         fixedRatioSettingButton?.tintColor = config.foregroundColor
     }
 
@@ -199,86 +205,113 @@ public class CropToolbar: UIView, CropToolbarProtocol {
 // Objc functions
 extension CropToolbar {
     @objc private func cancel() {
-        cropToolbarDelegate?.didSelectCancel(self)
+        delegate?.didSelectCancel(self)
     }
 
     @objc private func setRatio() {
-        cropToolbarDelegate?.didSelectSetRatio(self)
+        delegate?.didSelectSetRatio(self)
     }
 
     @objc private func reset(_ sender: Any) {
-        cropToolbarDelegate?.didSelectReset(self)
+        delegate?.didSelectReset(self)
     }
 
     @objc private func counterClockwiseRotate(_ sender: Any) {
-        cropToolbarDelegate?.didSelectCounterClockwiseRotate(self)
+        delegate?.didSelectCounterClockwiseRotate(self)
     }
 
     @objc private func clockwiseRotate(_ sender: Any) {
-        cropToolbarDelegate?.didSelectClockwiseRotate(self)
+        delegate?.didSelectClockwiseRotate(self)
     }
 
     @objc private func alterCropper90Degree(_ sender: Any) {
-        cropToolbarDelegate?.didSelectAlterCropper90Degree(self)
+        delegate?.didSelectAlterCropper90Degree(self)
     }
     
     @objc private func horizontallyFlip(_ sender: Any) {
-        cropToolbarDelegate?.didSelectHorizontallyFlip(self)
+        delegate?.didSelectHorizontallyFlip(self)
     }
 
     @objc private func verticallyFlip(_ sender: Any) {
-        cropToolbarDelegate?.didSelectVerticallyFlip(self)
+        delegate?.didSelectVerticallyFlip(self)
     }
 
     @objc private func crop(_ sender: Any) {
-        cropToolbarDelegate?.didSelectCrop(self)
+        delegate?.didSelectCrop(self)
     }
 }
 
 // private functions
 extension CropToolbar {
     private func createOptionButton(withTitle title: String?, andAction action: Selector) -> UIButton {
-        guard let config = config as? CropToolbarConfig else {
-            return UIButton()
-        }
-
         let buttonColor = config.foregroundColor
-        let buttonFontSize: CGFloat = (UIDevice.current.userInterfaceIdiom == .pad) ?
-            config.optionButtonFontSizeForPad :
-            config.optionButtonFontSize
-
-        let buttonFont = UIFont.systemFont(ofSize: buttonFontSize)
-
+        let buttonFont: UIFont = .preferredFont(forTextStyle: .body)
+        let fontMetrics = UIFontMetrics(forTextStyle: .body)
+        let maxSize = UIFont.systemFontSize * 1.5
+        
         let button = UIButton(type: .system)
         button.tintColor = config.foregroundColor
-        button.titleLabel?.font = buttonFont
-
+        button.titleLabel?.font = fontMetrics.scaledFont(for: buttonFont, maximumPointSize: maxSize)
+        button.titleLabel?.adjustsFontForContentSizeCategory = true
+        button.titleLabel?.minimumScaleFactor = 0.5
+        button.translatesAutoresizingMaskIntoConstraints = false
+        
+        let compressionPriority: Float
+        
         if let title = title {
             button.setTitle(title, for: .normal)
             button.setTitleColor(buttonColor, for: .normal)
+            button.accessibilityIdentifier = "\(title)"
+            
+            // Set content compression resistance priority
+            compressionPriority = AutoLayoutPriorityType.high.rawValue + 2
+        } else {
+            // Set content compression resistance priority
+            compressionPriority = AutoLayoutPriorityType.high.rawValue + 1
         }
+        
+        // Set content hugging priority
+        let huggingPriority: Float = 250
+        button.setContentHuggingPriority(UILayoutPriority(rawValue: huggingPriority), for: .horizontal)
+        button.setContentHuggingPriority(UILayoutPriority(rawValue: huggingPriority), for: .vertical)
 
+        // Set width constraint
+        button.widthAnchor.constraint(greaterThanOrEqualToConstant: button.intrinsicContentSize.width).isActive = true
+        
+        button.setContentCompressionResistancePriority(UILayoutPriority(rawValue: compressionPriority), for: .horizontal)
+        button.setContentCompressionResistancePriority(UILayoutPriority(rawValue: compressionPriority), for: .vertical)
+
+        
         button.addTarget(self, action: action, for: .touchUpInside)
         button.contentEdgeInsets = UIEdgeInsets(top: 4, left: 10, bottom: 4, right: 10)
+        
+        button.isAccessibilityElement = true
+        button.accessibilityTraits = .button
 
         return button
     }
 
     private func createResetButton(with image: UIImage? = nil) -> UIButton {
+        let button: UIButton
         if let image = image {
-            let button = createOptionButton(withTitle: nil, andAction: #selector(reset))
+            button = createOptionButton(withTitle: nil, andAction: #selector(reset))
             button.setImage(image, for: .normal)
-            return button
         } else {
             let resetText = LocalizedHelper.getString("Mantis.Reset", value: "Reset")
-            return createOptionButton(withTitle: resetText, andAction: #selector(reset))
+            button = createOptionButton(withTitle: resetText, andAction: #selector(reset))
         }
+        
+        button.accessibilityIdentifier = "ResetButton"
+        button.accessibilityLabel = LocalizedHelper.getString("Mantis.Reset", value: "Reset")
+        return button
     }
     
     private func createSetRatioButton() -> UIButton {
         let button = createOptionButton(withTitle: nil, andAction: #selector(setRatio))
         let icon = iconProvider?.getSetRatioIcon() ?? ToolBarButtonImageBuilder.clampImage()
         button.setImage(icon, for: .normal)
+        button.accessibilityIdentifier = "RatioButton"
+        button.accessibilityLabel = LocalizedHelper.getString("Mantis.Aspect ratio", value: "Aspect ratio")
         return button
     }
 

@@ -24,12 +24,10 @@
 
 import UIKit
 
-public class CropViewController: UIViewController {
+open class CropViewController: UIViewController {
     public weak var delegate: CropViewControllerDelegate?
     public var config = Mantis.Config()
     
-    private var orientation: UIInterfaceOrientation = .unknown
-
     var cropView: CropViewProtocol!
     var cropToolbar: CropToolbarProtocol!
     
@@ -43,8 +41,8 @@ public class CropViewController: UIViewController {
     deinit {
         print("CropViewController deinit.")
     }
-    
-    init(config: Mantis.Config = Mantis.Config()) {
+
+    required public init(config: Mantis.Config = Mantis.Config()) {
         self.config = config
 
         switch config.cropViewConfig.cropShapeType {
@@ -52,12 +50,12 @@ public class CropViewController: UIViewController {
             self.config.presetFixedRatioType = .alwaysUsingOnePresetFixedRatio(ratio: 1)
         default:
             ()
-        }        
-        
+        }
+
         super.init(nibName: nil, bundle: nil)
     }
     
-    required init?(coder aDecoder: NSCoder) {
+    required public init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
     }
     
@@ -72,7 +70,7 @@ public class CropViewController: UIViewController {
     }
     
     private func createCropToolbar() {
-        cropToolbar.cropToolbarDelegate = self
+        cropToolbar.delegate = self
         
         switch config.presetFixedRatioType {
         case .alwaysUsingOnePresetFixedRatio(let ratio):
@@ -114,10 +112,10 @@ public class CropViewController: UIViewController {
         return FixedRatioManager(type: type,
                                  originalRatioH: ratio,
                                  ratioOptions: config.ratioOptions,
-                                 customRatios: config.getCustomRatioItems())
+                                 customRatios: config.getCustomRatioItems().compactMap { $0 })
     }
-    
-    override public func viewDidLoad() {
+
+    override open func viewDidLoad() {
         super.viewDidLoad()
 
 #if targetEnvironment(macCatalyst)
@@ -153,19 +151,17 @@ public class CropViewController: UIViewController {
         return [.top, .bottom]
     }
     
+    // It is triggered by (1) - device rotation or (2) - split view operations on iPad
     public override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
         super.viewWillTransition(to: size, with: coordinator)
-        cropView.prepareForDeviceRotation()
-        handleDeviceRotated()
-    }    
+        cropView.prepareForViewWillTransition()
+        handleViewWillTransition()
+    }
     
-    @objc func handleDeviceRotated() {
+    @objc func handleViewWillTransition() {
         let currentOrientation = Orientation.interfaceOrientation
         
         guard currentOrientation != .unknown else { return }
-        guard currentOrientation != orientation else { return }
-        
-        orientation = currentOrientation
         
         if UIDevice.current.userInterfaceIdiom == .phone
             && currentOrientation == .portraitUpsideDown {
@@ -180,7 +176,7 @@ public class CropViewController: UIViewController {
         // So delay the execution to make sure handleRotate runs after the final
         // viewDidLayoutSubviews
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-            self?.cropView.handleDeviceRotated()
+            self?.cropView.handleViewWillTransition()
         }
     }    
     
@@ -321,7 +317,7 @@ extension CropViewController {
     }
     
     private func setStackViewAxis() {
-        if Orientation.isPortrait {
+        if Orientation.treatAsPortrait {
             stackView?.axis = .vertical
         } else if Orientation.isLandscape {
             stackView?.axis = .horizontal
@@ -338,7 +334,7 @@ extension CropViewController {
         stackView?.removeArrangedSubview(cropStackView)
         stackView?.removeArrangedSubview(cropToolbar)
         
-        if Orientation.isPortrait || Orientation.isLandscapeRight {
+        if Orientation.treatAsPortrait || Orientation.isLandscapeRight {
             stackView?.addArrangedSubview(cropStackView)
             stackView?.addArrangedSubview(cropToolbar)
         } else if Orientation.isLandscapeLeft {
@@ -355,20 +351,20 @@ extension CropViewController {
 }
 
 extension CropViewController: CropViewDelegate {    
-    func cropViewDidBecomeResettable(_ cropView: CropView) {
+    func cropViewDidBecomeResettable(_ cropView: CropViewProtocol) {
         cropToolbar.handleCropViewDidBecomeResettable()
         delegate?.cropViewControllerDidImageTransformed(self)
     }
     
-    func cropViewDidBecomeUnResettable(_ cropView: CropView) {
+    func cropViewDidBecomeUnResettable(_ cropView: CropViewProtocol) {
         cropToolbar.handleCropViewDidBecomeUnResettable()
     }
     
-    func cropViewDidBeginResize(_ cropView: CropView) {
+    func cropViewDidBeginResize(_ cropView: CropViewProtocol) {
         delegate?.cropViewControllerDidBeginResize(self)
     }
     
-    func cropViewDidEndResize(_ cropView: CropView) {
+    func cropViewDidEndResize(_ cropView: CropViewProtocol) {
         delegate?.cropViewControllerDidEndResize(self,
                                                  original: cropView.image,
                                                  cropInfo: cropView.getCropInfo())
@@ -452,5 +448,4 @@ extension CropViewController {
     public func getExpectedCropImageSize() -> CGSize {
         cropView.getExpectedCropImageSize()
     }
-
 }

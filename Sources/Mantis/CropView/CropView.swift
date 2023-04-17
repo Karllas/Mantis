@@ -25,10 +25,10 @@
 import UIKit
 
 protocol CropViewDelegate: AnyObject {
-    func cropViewDidBecomeResettable(_ cropView: CropView)
-    func cropViewDidBecomeUnResettable(_ cropView: CropView)
-    func cropViewDidBeginResize(_ cropView: CropView)
-    func cropViewDidEndResize(_ cropView: CropView)
+    func cropViewDidBecomeResettable(_ cropView: CropViewProtocol)
+    func cropViewDidBecomeUnResettable(_ cropView: CropViewProtocol)
+    func cropViewDidBeginResize(_ cropView: CropViewProtocol)
+    func cropViewDidEndResize(_ cropView: CropViewProtocol)
 }
 
 class CropView: UIView {
@@ -54,10 +54,7 @@ class CropView: UIView {
     
     var rotationDial: RotationDialProtocol? {
         didSet {
-            guard let rotationDial = rotationDial else {
-                return
-            }
-            addSubview(rotationDial)
+            addSubview(rotationDial!)
         }
     }
     
@@ -66,19 +63,22 @@ class CropView: UIView {
     var checkForForceFixedRatioFlag = false
     let cropViewConfig: CropViewConfig
     
-    lazy private var activityIndicator: UIActivityIndicatorView = {
-        let activityIndicator = UIActivityIndicatorView(frame: .zero)
-        activityIndicator.color = .white
-        let indicatorSize: CGFloat = 100
-        activityIndicator.transform = CGAffineTransform(scaleX: 2.0, y: 2.0)
-        
+    lazy private var activityIndicator: ActivityIndicatorProtocol = {
+        let activityIndicator: ActivityIndicatorProtocol
+        if let indicator = cropViewConfig.cropActivityIndicator {
+            activityIndicator = indicator
+        } else {
+            activityIndicator = UIActivityIndicatorView(frame: .zero)
+            (activityIndicator as! UIActivityIndicatorView).color = .white
+            activityIndicator.transform = CGAffineTransform(scaleX: 2.0, y: 2.0)
+        }
+                
         addSubview(activityIndicator)
         activityIndicator.translatesAutoresizingMaskIntoConstraints = false
-        
         activityIndicator.centerXAnchor.constraint(equalTo: centerXAnchor).isActive = true
         activityIndicator.centerYAnchor.constraint(equalTo: centerYAnchor).isActive = true
-        activityIndicator.widthAnchor.constraint(equalToConstant: indicatorSize).isActive = true
-        activityIndicator.heightAnchor.constraint(equalToConstant: indicatorSize).isActive = true
+        activityIndicator.widthAnchor.constraint(equalToConstant: cropViewConfig.cropActivityIndicatorSize.width).isActive = true
+        activityIndicator.heightAnchor.constraint(equalToConstant: cropViewConfig.cropActivityIndicatorSize.width).isActive = true
         
         return activityIndicator
     }()
@@ -144,8 +144,7 @@ class CropView: UIView {
         switch viewStatus {
         case .initial:
             initialRender()
-        case .rotating(let angle):
-            viewModel.degrees = angle.degrees
+        case .rotating:
             rotateCropWorkbenchView()
         case .degree90Rotating:
             cropMaskViewManager.showVisualEffectBackground(animated: true)
@@ -154,14 +153,14 @@ class CropView: UIView {
         case .touchImage:
             cropMaskViewManager.showDimmingBackground(animated: true)
             cropAuxiliaryIndicatorView.gridLineNumberType = .crop
-            cropAuxiliaryIndicatorView.setGrid(hidden: false, animated: true)
+            cropAuxiliaryIndicatorView.gridHidden = false
         case .touchCropboxHandle(let tappedEdge):
-            cropAuxiliaryIndicatorView.handleCornerHandleTouched(with: tappedEdge)
+            cropAuxiliaryIndicatorView.handleIndicatorHandleTouched(with: tappedEdge)
             rotationDial?.isHidden = true
             cropMaskViewManager.showDimmingBackground(animated: true)
         case .touchRotationBoard:
             cropAuxiliaryIndicatorView.gridLineNumberType = .rotate
-            cropAuxiliaryIndicatorView.setGrid(hidden: false, animated: true)
+            cropAuxiliaryIndicatorView.gridHidden = false
             cropMaskViewManager.showDimmingBackground(animated: true)
         case .betweenOperation:
             cropAuxiliaryIndicatorView.handleEdgeUntouched()
@@ -263,7 +262,7 @@ class CropView: UIView {
             self.viewModel.setBetweenOperationStatus()
         }
         
-        rotationDial.rotateDialPlate(by: CGAngle(radians: viewModel.radians))
+        rotationDial.rotateDialPlate(by: Angle(radians: viewModel.radians))
         rotationDial.bringSelfToFront()
                 
         adaptAngleDashboardToCropBox()
@@ -272,7 +271,7 @@ class CropView: UIView {
     private func adaptAngleDashboardToCropBox() {
         guard let rotationDial = rotationDial else { return }
         
-        if Orientation.isPortrait {
+        if Orientation.treatAsPortrait {
             rotationDial.transform = CGAffineTransform(rotationAngle: 0)
             rotationDial.frame.origin.x = cropAuxiliaryIndicatorView.frame.origin.x +
             (cropAuxiliaryIndicatorView.frame.width - rotationDial.frame.width) / 2
@@ -407,7 +406,7 @@ extension CropView {
         let rect = self.bounds
         var contentRect = CGRect.zero
         
-        if Orientation.isPortrait {
+        if Orientation.treatAsPortrait {
             contentRect.origin.x = rect.origin.x + cropViewPadding
             contentRect.origin.y = rect.origin.y + cropViewPadding
             
@@ -459,6 +458,11 @@ extension CropView {
                             animation: Bool = true,
                             zoom: Bool = true,
                             completion: @escaping () -> Void) {
+        
+        guard viewModel.cropBoxFrame.size.width > 0 && viewModel.cropBoxFrame.size.height > 0 else {
+            return
+        }
+        
         let scaleX = contentRect.width / viewModel.cropBoxFrame.size.width
         let scaleY = contentRect.height / viewModel.cropBoxFrame.size.height
         
@@ -471,6 +475,11 @@ extension CropView {
         // calculate the new bounds of scroll view
         let newBoundWidth = abs(cos(radians)) * newCropBounds.size.width + abs(sin(radians)) * newCropBounds.size.height
         let newBoundHeight = abs(sin(radians)) * newCropBounds.size.width + abs(cos(radians)) * newCropBounds.size.height
+        
+        guard newBoundWidth > 0 && newBoundWidth != .infinity
+           && newBoundHeight > 0 && newBoundHeight != .infinity else {
+            return
+        }
         
         // calculate the zoom area of scroll view
         var scaleFrame = viewModel.cropBoxFrame
@@ -582,6 +591,7 @@ extension CropView {
         DispatchQueue.global(qos: .userInteractive).async {
             let maskedCropOutput = self.addImageMask(to: cropOutput)
             DispatchQueue.main.async {
+                self.activityIndicator.stopAnimating()
                 self.activityIndicator.isHidden = true
                 completion(maskedCropOutput)
             }
@@ -602,20 +612,21 @@ extension CropView {
     
     func addImageMask(to cropOutput: CropOutput) -> CropOutput {
         let (croppedImage, transformation, cropInfo) = cropOutput
-        
+
         guard let croppedImage = croppedImage else {
+            assertionFailure("croppedImage should not be nil")
             return cropOutput
         }
         
         switch cropViewConfig.cropShapeType {
         case .rect,
-                .square,
-                .circle(maskOnly: true),
-                .roundedRect(_, maskOnly: true),
-                .path(_, maskOnly: true),
-                .diamond(maskOnly: true),
-                .heart(maskOnly: true),
-                .polygon(_, _, maskOnly: true):
+             .square,
+             .circle(maskOnly: true),
+             .roundedRect(_, maskOnly: true),
+             .path(_, maskOnly: true),
+             .diamond(maskOnly: true),
+             .heart(maskOnly: true),
+             .polygon(_, _, maskOnly: true):
             
             let outputImage: UIImage?
             if cropViewConfig.cropBorderWidth > 0 {
@@ -678,7 +689,7 @@ extension CropView {
     private func setRotation(byRadians radians: CGFloat) {
         cropWorkbenchView.transform = CGAffineTransform(rotationAngle: radians)
         updatePosition(by: radians)
-        rotationDial?.rotateDialPlate(to: CGAngle(radians: radians), animated: false)
+        rotationDial?.rotateDialPlate(to: Angle(radians: radians), animated: false)
     }
     
     func setFixedRatioCropBox(zoom: Bool = true, cropBox: CGRect? = nil) {
@@ -751,16 +762,16 @@ extension CropView: CropViewProtocol {
         if viewModel.rotationType.isRotateByMultiple180 {
             return Double(image.horizontalToVerticalRatio())
         } else {
-            return Double(1/image.horizontalToVerticalRatio())
+            return Double(1 / image.horizontalToVerticalRatio())
         }
     }
         
-    func prepareForDeviceRotation() {
+    func prepareForViewWillTransition() {
         viewModel.setDegree90RotatingStatus()
         saveAnchorPoints()
     }
     
-    func handleDeviceRotated() {
+    func handleViewWillTransition() {
         viewModel.resetCropFrame(by: getInitialCropBoxRect())
         
         cropWorkbenchView.transform = CGAffineTransform(scaleX: 1, y: 1)
@@ -869,7 +880,7 @@ extension CropView: CropViewProtocol {
     }
     
     func transform(byTransformInfo transformation: Transformation, rotateDial: Bool = true) {
-        viewModel.setRotatingStatus(by: CGAngle(radians: transformation.rotation))
+        viewModel.setRotatingStatus(by: Angle(radians: transformation.rotation))
         
         if transformation.cropWorkbenchViewBounds != .zero {
             cropWorkbenchView.bounds = transformation.cropWorkbenchViewBounds
@@ -885,7 +896,7 @@ extension CropView: CropViewProtocol {
         }
         
         if rotateDial {
-            rotationDial?.rotateDialPlate(by: CGAngle(radians: viewModel.radians))
+            rotationDial?.rotateDialPlate(by: Angle(radians: viewModel.radians))
             adaptAngleDashboardToCropBox()
         }
     }
@@ -1069,4 +1080,8 @@ extension CropView: CropViewProtocol {
     func getExpectedCropImageSize() -> CGSize {
         image.getOutputCropImageSize(by: getCropInfo())
     }
+}
+
+extension UIActivityIndicatorView: ActivityIndicatorProtocol {
+    
 }

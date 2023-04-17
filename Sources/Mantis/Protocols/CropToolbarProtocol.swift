@@ -49,22 +49,18 @@ public extension CropToolbarIconProvider {
 }
 
 public protocol CropToolbarProtocol: UIView {
-    var config: CropToolbarConfigProtocol? { get }
-    
-    var cropToolbarDelegate: CropToolbarDelegate? { get set }
-    
+    var config: CropToolbarConfig { get set }
+    var delegate: CropToolbarDelegate? { get set }
     var iconProvider: CropToolbarIconProvider? { get set }
 
-    func createToolbarUI(config: CropToolbarConfigProtocol?)
+    func createToolbarUI(config: CropToolbarConfig)
     func handleFixedRatioSetted(ratio: Double)
     func handleFixedRatioUnSetted()
     
     // MARK: - The following functions have default implementations
     func getRatioListPresentSourceView() -> UIView?
-    
     func respondToOrientationChange()
-    func adjustLayoutWhenOrientationChange()
-        
+    func adjustLayoutWhenOrientationChange()        
     func handleCropViewDidBecomeResettable()
     func handleCropViewDidBecomeUnResettable()
 }
@@ -77,10 +73,10 @@ public extension CropToolbarProtocol {
     private func adjustIntrinsicContentSize() {
         invalidateIntrinsicContentSize()
         
-        let highPriority: Float = 10000
-        let lowPriority: Float = 1
+        let highPriority = AutoLayoutPriorityType.high.rawValue
+        let lowPriority = AutoLayoutPriorityType.low.rawValue
 
-        if Orientation.isPortrait {
+        if Orientation.treatAsPortrait {
             setContentHuggingPriority(UILayoutPriority(highPriority), for: .vertical)
             setContentCompressionResistancePriority(UILayoutPriority(highPriority), for: .vertical)
             setContentHuggingPriority(UILayoutPriority(lowPriority), for: .horizontal)

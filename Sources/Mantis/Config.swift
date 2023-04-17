@@ -41,7 +41,7 @@ public struct Config {
     public var cropMode: CropMode = .sync
     
     public var cropViewConfig = CropViewConfig()    
-    public var cropToolbarConfig: CropToolbarConfigProtocol = CropToolbarConfig()
+    public var cropToolbarConfig = CropToolbarConfig()
     
     public var ratioOptions: RatioOptions = .all
     public var presetFixedRatioType: PresetFixedRatioType = .canUseMultiplePresetFixedRatio()
@@ -59,21 +59,25 @@ public struct Config {
         guard let bundle = Bundle(identifier: bundleIdentifier) else {
             return nil
         }
-
-        if let url = bundle.url(forResource: "MantisResources", withExtension: "bundle") {
-            let bundle = Bundle(url: url)
-            return bundle
+        
+        guard let url = bundle.url(forResource: "MantisResources", withExtension: "bundle") else {
+            return nil
         }
-        return nil
+        
+        return Bundle(url: url)
     }()
+    
+    static var language: Language?
 
     public init() {}
 
     mutating public func addCustomRatio(byHorizontalWidth width: Int, andHorizontalHeight height: Int) {
+        assert(width > 0 && height > 0)
         customRatios.append((width, height))
     }
 
     mutating public func addCustomRatio(byVerticalWidth width: Int, andVerticalHeight height: Int) {
+        assert(width > 0 && height > 0)
         customRatios.append((height, width))
     }
 
@@ -81,10 +85,10 @@ public struct Config {
         return !customRatios.isEmpty
     }
 
-    func getCustomRatioItems() -> [RatioItemType] {
+    func getCustomRatioItems() -> [RatioItemType?] {
         return customRatios.map {
-            (String("\($0.width):\($0.height)"), Double($0.width)/Double($0.height),
-             String("\($0.height):\($0.width)"), Double($0.height)/Double($0.width))
+            RatioItemType(nameH: String("\($0.width):\($0.height)"), ratioH: Double($0.width)/Double($0.height),
+                          nameV: String("\($0.height):\($0.width)"), ratioV: Double($0.height)/Double($0.width))
         }
     }
 }

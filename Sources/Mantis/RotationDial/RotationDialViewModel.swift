@@ -6,10 +6,10 @@
 //  Copyright © 2019 Echo. All rights reserved.
 //
 
-import UIKit
+import Foundation
 
 class RotationDialViewModel: RotationDialViewModelProtocol {
-    var didSetRotationAngle: (CGAngle) -> Void = { _ in }
+    var didSetRotationAngle: (Angle) -> Void = { _ in }
     
     var touchPoint: CGPoint? {
         didSet {
@@ -20,11 +20,11 @@ class RotationDialViewModel: RotationDialViewModelProtocol {
             }
             
             let radians = rotationCal.getRotationRadians(byOldPoint: oldValue, andNewPoint: newValue)
-            rotationAngle = CGAngle(radians: radians)
+            rotationAngle = Angle(radians: radians)
         }
     }
 
-    private var rotationAngle = CGAngle(degrees: 0) {
+    var rotationAngle = Angle(degrees: 0) {
         didSet {
             didSetRotationAngle(rotationAngle)
         }

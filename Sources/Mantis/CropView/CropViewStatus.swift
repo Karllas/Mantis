@@ -10,10 +10,10 @@ import Foundation
 
 enum CropViewStatus: Equatable {
     case initial
-    case rotating(angle: CGAngle)
+    case rotating
     case degree90Rotating
     case touchImage
     case touchRotationBoard
-    case touchCropboxHandle(tappedEdge: CropViewOverlayEdge = .none)
+    case touchCropboxHandle(tappedEdge: CropViewAuxiliaryIndicatorHandleType = .none)
     case betweenOperation
 }

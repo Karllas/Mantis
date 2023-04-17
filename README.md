@@ -39,7 +39,7 @@
     <summary><strong>CocoaPods</strong></summary>
 
 ```ruby
-pod 'Mantis', '~> 2.6.0'
+pod 'Mantis', '~> 2.9.1'
 ```
 </details>
 
@@ -55,7 +55,7 @@ github "guoyingtao/Mantis"
  <summary><strong>Swift Packages</strong></summary>
 
 * Respository: https://github.com/guoyingtao/Mantis.git
-* Rules: Version - Exact - 2.6.0
+* Rules: Version - Exact - 2.9.1
 
 </details>
 
@@ -239,6 +239,30 @@ config.localizationConfig.bundle = // a bundle where strings file is located
 config.localizationConfig.tableName = // a localizaed strings file name within the bundle
 ```
   
+</details>
+
+<details>
+    <summary><strong>Custom View Controller</strong></summary>
+
+- If needed you can subclass `CropViewController`:
+
+```swift
+class CustomViewController: CropViewController {
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        // Do your custom logic here.
+        // The MantisExample project also has a showcase for a CustomViewController.
+    }
+}
+```
+
+- To get an instance, Mantis provides a factory method:
+
+```swift
+let cropViewController: CustomViewController = Mantis.cropViewController(image: image, config: config)
+```
+
 </details>
     
 ### Demo projects

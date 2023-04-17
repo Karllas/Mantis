@@ -11,9 +11,9 @@ import Mantis
 
 class CustomizedCropToolbarWithoutList: UIView, CropToolbarProtocol {
     var iconProvider: CropToolbarIconProvider?
-    weak var cropToolbarDelegate: CropToolbarDelegate?
+    weak var delegate: CropToolbarDelegate?
     
-    private (set)var config: CropToolbarConfigProtocol?
+    var config = CropToolbarConfig()
     
     private var fixedRatioSettingButton: UIButton?
     private var portraitRatioButton: UIButton?
@@ -24,7 +24,7 @@ class CustomizedCropToolbarWithoutList: UIView, CropToolbarProtocol {
         
     var custom: ((Double) -> Void)?
     
-    func createToolbarUI(config: CropToolbarConfigProtocol?) {
+    func createToolbarUI(config: CropToolbarConfig) {
         self.config = config
         
         backgroundColor = .darkGray
@@ -72,11 +72,8 @@ class CustomizedCropToolbarWithoutList: UIView, CropToolbarProtocol {
     
     public override var intrinsicContentSize: CGSize {
         let superSize = super.intrinsicContentSize
-        guard let config = config else {
-            return superSize
-        }
         
-        if Orientation.isPortrait {
+        if Orientation.treatAsPortrait {
             return CGSize(width: superSize.width, height: config.heightForVerticalOrientation)
         } else {
             return CGSize(width: config.widthForHorizontalOrientation, height: superSize.height)
@@ -84,7 +81,7 @@ class CustomizedCropToolbarWithoutList: UIView, CropToolbarProtocol {
     }
 
     func adjustLayoutWhenOrientationChange() {
-        if Orientation.isPortrait {
+        if Orientation.treatAsPortrait {
             stackView?.axis = .horizontal
         } else {
             stackView?.axis = .vertical
@@ -92,32 +89,25 @@ class CustomizedCropToolbarWithoutList: UIView, CropToolbarProtocol {
     }
     
     @objc private func crop() {
-        cropToolbarDelegate?.didSelectCrop(self)
+        delegate?.didSelectCrop(self)
     }
     
     @objc private func cancel() {
-        cropToolbarDelegate?.didSelectCancel(self)
+        delegate?.didSelectCancel(self)
     }
     
     @objc private func setPortraitRatio() {
-        cropToolbarDelegate?.didSelectRatio(self, ratio: 9 / 16)
+        delegate?.didSelectRatio(self, ratio: 9 / 16)
     }
     
     @objc private func setLandscapeRatio() {
-        cropToolbarDelegate?.didSelectRatio(self, ratio: 16 / 9)
+        delegate?.didSelectRatio(self, ratio: 16 / 9)
     }
     
     private func createOptionButton(withTitle title: String?, andAction action: Selector) -> UIButton {
-        guard let config = config else {
-            return UIButton()
-        }
-
         let buttonColor = UIColor.white
-        let buttonFontSize: CGFloat = (UIDevice.current.userInterfaceIdiom == .pad) ?
-            config.optionButtonFontSizeForPad :
-            config.optionButtonFontSize
         
-        let buttonFont = UIFont.systemFont(ofSize: buttonFontSize)
+        let buttonFont = UIFont.systemFont(ofSize: 16)
         
         let button = UIButton(type: .system)
         button.tintColor = .white
